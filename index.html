@@ -22,6 +22,7 @@
             --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             --primary-btn: linear-gradient(to right, #4CAF50, #8BC34A);
             --secondary-btn: linear-gradient(to right, #f44336, #FF9800);
+            --warning-btn: linear-gradient(to right, #FF9800, #FF5722);
         }
 
         [data-theme="light"] {
@@ -142,6 +143,11 @@
         
         .btn-secondary {
             background: var(--secondary-btn);
+            color: white;
+        }
+        
+        .btn-warning {
+            background: var(--warning-btn);
             color: white;
         }
         
@@ -395,7 +401,7 @@
             font-weight: bold;
         }
         
-        .setting input {
+        .setting input, .setting select {
             width: 100%;
             padding: 12px;
             border-radius: 10px;
@@ -441,6 +447,46 @@
         
         .pulse {
             animation: pulse 0.5s;
+        }
+        
+        @keyframes smoke-puff {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        
+        .smoke-puff {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: smoke-puff 1s forwards;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            z-index: 2000;
+            display: none;
+        }
+        
+        .notification.success {
+            background: #4CAF50;
+        }
+        
+        .notification.error {
+            background: #f44336;
+        }
+        
+        .notification.warning {
+            background: #FF9800;
         }
         
         @media (max-width: 600px) {
@@ -590,7 +636,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="authTitle">Вход</h2>
-                <button class="close-modal" id="closeAuth">&times;</button>
+                <button class="close-modal" id="closeAuthModal">&times;</button>
             </div>
             <div class="setting">
                 <label>Email:</label>
@@ -600,9 +646,15 @@
                 <label>Пароль:</label>
                 <input type="password" id="authPassword" placeholder="********">
             </div>
+            <div class="setting" id="forgotPasswordSection" style="display: none;">
+                <label>Новый пароль:</label>
+                <input type="password" id="newPassword" placeholder="********">
+            </div>
             <div class="modal-actions">
                 <button class="btn btn-primary btn-full" id="authSubmit">Войти</button>
                 <button class="btn btn-secondary btn-full" id="toggleAuth">Нет аккаунта? Зарегистрироваться</button>
+                <button class="btn btn-warning btn-full" id="forgotPasswordBtn">Забыли пароль?</button>
+                <button class="btn btn-secondary btn-full" id="resetPasswordBtn" style="display: none;">Сбросить пароль</button>
             </div>
         </div>
     </div>
@@ -612,7 +664,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Настройки</h2>
-                <button class="close-modal">&times;</button>
+                <button class="close-modal" id="closeSettingsModal">&times;</button>
             </div>
             <div class="setting">
                 <label>Цель (сигарет в день):</label>
@@ -628,6 +680,7 @@
             </div>
             <div class="modal-actions">
                 <button class="btn btn-secondary btn-full" id="loginBtn">Войти / Зарегистрироваться</button>
+                <button class="btn btn-secondary btn-full" id="refreshBtn">Обновить приложение</button>
                 <button class="btn btn-secondary btn-full" id="exportBtn">Экспорт данных</button>
                 <button class="btn btn-secondary btn-full" id="resetDayBtn">Сбросить сегодня</button>
                 <button class="btn danger-btn btn-full" id="resetAllBtn">Сбросить всё</button>
@@ -636,18 +689,14 @@
         </div>
     </div>
     
+    <!-- Уведомления -->
+    <div class="notification" id="notification"></div>
+    
     <script>
         // Конфигурация Supabase (ЗАМЕНИТЕ НА СВОИ ДАННЫЕ!)
-        const supabaseUrl = 'https://podwpmokbbyzkrqhygci.supabase.co'; // Замените на ваш Project URL
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvZHdwbW9rYmJ5emtycWh5Z2NpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMzNzI1MzQsImV4cCI6MjA2ODk0ODUzNH0.3UH4jmnzgPub0GLCK4yXE692kpYuXVt9LAwJmC5heaA'; // Замените на ваш anon key
-        
-        // Инициализация Supabase
-        let supabase;
-        try {
-            supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-        } catch (error) {
-            console.error('Ошибка инициализации Supabase:', error);
-        }
+        const supabaseUrl = 'https://ВАШ_PROJECT_ID.supabase.co'; // ЗАМЕНИТЕ НА ВАШ PROJECT URL
+        const supabaseKey = 'ВАШ_ANON_KEY'; // ЗАМЕНИТЕ НА ВАШ ANON KEY
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
         
         // Данные приложения
         let data = {
@@ -708,13 +757,30 @@
         const authTitle = document.getElementById('authTitle');
         const authEmail = document.getElementById('authEmail');
         const authPassword = document.getElementById('authPassword');
+        const newPassword = document.getElementById('newPassword');
         const authSubmit = document.getElementById('authSubmit');
         const toggleAuth = document.getElementById('toggleAuth');
-        const closeAuth = document.getElementById('closeAuth');
+        const forgotPasswordBtn = document.getElementById('forgotPasswordBtn');
+        const resetPasswordBtn = document.getElementById('resetPasswordBtn');
+        const forgotPasswordSection = document.getElementById('forgotPasswordSection');
+        const closeAuthModal = document.getElementById('closeAuthModal');
+        
+        // Settings elements
+        const settingsModal = document.getElementById('settingsModal');
         const loginBtn = document.getElementById('loginBtn');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const resetDayBtn = document.getElementById('resetDayBtn');
+        const resetAllBtn = document.getElementById('resetAllBtn');
+        const saveSettings = document.getElementById('saveSettings');
+        const closeSettingsModal = document.getElementById('closeSettingsModal');
+        
+        // Notification element
+        const notificationEl = document.getElementById('notification');
         
         // Auth state
         let isRegistration = false;
+        let isForgotPassword = false;
         let currentUser = null;
         
         // Инициализация приложения
@@ -731,25 +797,30 @@
             document.getElementById('decrement').addEventListener('click', decrementCounter);
             document.getElementById('themeToggle').addEventListener('click', toggleTheme);
             document.getElementById('settingsBtn').addEventListener('click', openSettings);
-            document.getElementById('saveSettings').addEventListener('click', saveSettings);
+            document.getElementById('saveSettings').addEventListener('click', saveSettingsFunc);
             document.getElementById('exportBtn').addEventListener('click', exportData);
             document.getElementById('resetDayBtn').addEventListener('click', resetDay);
             document.getElementById('resetAllBtn').addEventListener('click', resetAll);
-            document.querySelector('.close-modal').addEventListener('click', closeSettings);
-            document.getElementById('settingsModal').addEventListener('click', function(e) {
+            document.getElementById('refreshBtn').addEventListener('click', refreshApp);
+            document.getElementById('loginBtn').addEventListener('click', showAuthModal);
+            
+            // Auth handlers
+            authSubmit.addEventListener('click', handleAuth);
+            toggleAuth.addEventListener('click', toggleAuthForm);
+            forgotPasswordBtn.addEventListener('click', toggleForgotPassword);
+            resetPasswordBtn.addEventListener('click', resetPassword);
+            closeAuthModal.addEventListener('click', hideAuthModal);
+            closeSettingsModal.addEventListener('click', closeSettings);
+            
+            // Modal click handlers
+            authModal.addEventListener('click', function(e) {
+                if (e.target === this) hideAuthModal();
+            });
+            settingsModal.addEventListener('click', function(e) {
                 if (e.target === this) closeSettings();
             });
             
-            // Auth handlers
-            loginBtn.addEventListener('click', showAuthModal);
-            authSubmit.addEventListener('click', handleAuth);
-            toggleAuth.addEventListener('click', toggleAuthForm);
-            closeAuth.addEventListener('click', hideAuthModal);
-            document.getElementById('authModal').addEventListener('click', function(e) {
-                if (e.target === this) hideAuthModal();
-            });
-            
-            // Обработчики для статистики
+            // Stat card click handlers
             document.getElementById('todayCard').addEventListener('click', function() {
                 toggleTimeDetails('today');
             });
@@ -760,7 +831,10 @@
                 toggleTimeDetails('month');
             });
             
-            // Регистрация Service Worker
+            // Check for existing session
+            checkSession();
+            
+            // Register Service Worker
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function() {
                     navigator.serviceWorker.register('sw.js')
@@ -774,118 +848,13 @@
             }
         }
         
-        // Показать модальное окно аутентификации
-        function showAuthModal() {
-            authTitle.textContent = isRegistration ? 'Регистрация' : 'Вход';
-            authSubmit.textContent = isRegistration ? 'Зарегистрироваться' : 'Войти';
-            authModal.style.display = 'flex';
-        }
-        
-        // Скрыть модальное окно аутентификации
-        function hideAuthModal() {
-            authModal.style.display = 'none';
-        }
-        
-        // Переключить между входом и регистрацией
-        function toggleAuthForm() {
-            isRegistration = !isRegistration;
-            authTitle.textContent = isRegistration ? 'Регистрация' : 'Вход';
-            authSubmit.textContent = isRegistration ? 'Зарегистрироваться' : 'Войти';
-        }
-        
-        // Обработка аутентификации
-        async function handleAuth() {
-            const email = authEmail.value.trim();
-            const password = authPassword.value;
-            
-            if (!email || !password) {
-                alert('Заполните все поля');
-                return;
-            }
-            
-            try {
-                let result;
-                
-                if (isRegistration) {
-                    // Регистрация
-                    result = await supabase.auth.signUp({
-                        email: email,
-                        password: password
-                    });
-                    
-                    if (result.error) throw result.error;
-                    
-                    alert('Регистрация успешна! Проверьте email для подтверждения.');
-                    hideAuthModal();
-                } else {
-                    // Вход
-                    result = await supabase.auth.signInWithPassword({
-                        email: email,
-                        password: password
-                    });
-                    
-                    if (result.error) throw result.error;
-                    
-                    currentUser = result.data.user;
-                    hideAuthModal();
-                    alert('Вход выполнен!');
-                    
-                    // Загружаем данные пользователя
-                    await loadUserData();
-                }
-            } catch (error) {
-                console.error('Ошибка аутентификации:', error);
-                alert('Ошибка: ' + error.message);
-            }
-        }
-        
-        // Загрузка данных пользователя
-        async function loadUserData() {
-            if (!currentUser) return;
-            
-            try {
-                const { data: userData, error } = await supabase
-                    .from('smoking_data')
-                    .select('data')
-                    .eq('user_id', currentUser.id)
-                    .single();
-                
-                if (error && error.code !== 'PGRST116') {
-                    throw error;
-                }
-                
-                if (userData) {
-                    data = { ...data, ...userData.data };
-                } else {
-                    // Новых данных нет, сохраняем текущие
-                    await saveUserData();
-                }
-                
-                updateUI();
-            } catch (error) {
-                console.error('Ошибка загрузки данных:', error);
-                alert('Ошибка загрузки данных');
-            }
-        }
-        
-        // Сохранение данных пользователя
-        async function saveUserData() {
-            if (!currentUser) return;
-            
-            try {
-                const { error } = await supabase
-                    .from('smoking_data')
-                    .upsert({
-                        user_id: currentUser.id,
-                        data: data,
-                        updated_at: new Date().toISOString()
-                    }, {
-                        onConflict: 'user_id'
-                    });
-                
-                if (error) throw error;
-            } catch (error) {
-                console.error('Ошибка сохранения данных:', error);
+        // Проверка существующей сессии
+        async function checkSession() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                currentUser = session.user;
+                await loadUserData();
+                showNotification('Сессия восстановлена', 'success');
             }
         }
         
@@ -894,7 +863,7 @@
             try {
                 localStorage.setItem('smokingData', JSON.stringify(data));
                 
-                // Для авторизованных пользователей сохраняем в облако
+                // Сохраняем в облако для авторизованных пользователей
                 if (currentUser) {
                     setTimeout(() => {
                         saveUserData();
@@ -1046,6 +1015,17 @@
             setTimeout(() => {
                 counterEl.classList.remove('pulse');
             }, 500);
+            
+            // Создаем дымовое облако
+            const smoke = document.createElement('div');
+            smoke.className = 'smoke-puff';
+            smoke.style.left = (Math.random() * 100) + 'px';
+            smoke.style.top = (Math.random() * 100) + 'px';
+            counterEl.appendChild(smoke);
+            
+            setTimeout(() => {
+                smoke.remove();
+            }, 1000);
         }
         
         // Сброс дня
@@ -1133,16 +1113,16 @@
             document.getElementById('goalSetting').value = data.goal;
             document.getElementById('priceSetting').value = data.packPrice;
             document.getElementById('countSetting').value = data.cigarettesPerPack;
-            document.getElementById('settingsModal').style.display = 'flex';
+            settingsModal.style.display = 'flex';
         }
         
         // Закрытие настроек
         function closeSettings() {
-            document.getElementById('settingsModal').style.display = 'none';
+            settingsModal.style.display = 'none';
         }
         
         // Сохранение настроек
-        function saveSettings() {
+        function saveSettingsFunc() {
             data.goal = parseInt(document.getElementById('goalSetting').value) || 20;
             data.packPrice = parseInt(document.getElementById('priceSetting').value) || 250;
             data.cigarettesPerPack = parseInt(document.getElementById('countSetting').value) || 20;
@@ -1150,6 +1130,29 @@
             saveData();
             updateUI();
             closeSettings();
+        }
+        
+        // Обновление приложения
+        function refreshApp() {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    for(let registration of registrations) {
+                        registration.update();
+                    }
+                });
+            }
+            
+            // Принудительное обновление кэша
+            if (window.caches) {
+                caches.keys().then(function(names) {
+                    for (let name of names) {
+                        caches.delete(name);
+                    }
+                });
+            }
+            
+            // Перезагрузка страницы
+            location.reload(true);
         }
         
         // Экспорт данных
@@ -1284,6 +1287,216 @@
                     
                     card.appendChild(details);
                 }
+            }
+        }
+        
+        // Показ уведомления
+        function showNotification(message, type) {
+            notificationEl.textContent = message;
+            notificationEl.className = `notification ${type}`;
+            notificationEl.style.display = 'block';
+            
+            setTimeout(() => {
+                notificationEl.style.display = 'none';
+            }, 3000);
+        }
+        
+        // Показ модального окна аутентификации
+        function showAuthModal() {
+            authTitle.textContent = 'Вход';
+            authSubmit.textContent = 'Войти';
+            toggleAuth.textContent = 'Нет аккаунта? Зарегистрироваться';
+            forgotPasswordSection.style.display = 'none';
+            resetPasswordBtn.style.display = 'none';
+            forgotPasswordBtn.style.display = 'block';
+            isRegistration = false;
+            isForgotPassword = false;
+            authModal.style.display = 'flex';
+        }
+        
+        // Скрытие модального окна аутентификации
+        function hideAuthModal() {
+            authModal.style.display = 'none';
+        }
+        
+        // Переключение между входом и регистрацией
+        function toggleAuthForm() {
+            isRegistration = !isRegistration;
+            if (isRegistration) {
+                authTitle.textContent = 'Регистрация';
+                authSubmit.textContent = 'Зарегистрироваться';
+                toggleAuth.textContent = 'Уже есть аккаунт? Войти';
+                forgotPasswordSection.style.display = 'none';
+                resetPasswordBtn.style.display = 'none';
+                forgotPasswordBtn.style.display = 'block';
+            } else {
+                authTitle.textContent = 'Вход';
+                authSubmit.textContent = 'Войти';
+                toggleAuth.textContent = 'Нет аккаунта? Зарегистрироваться';
+                forgotPasswordSection.style.display = 'none';
+                resetPasswordBtn.style.display = 'none';
+                forgotPasswordBtn.style.display = 'block';
+            }
+            isForgotPassword = false;
+        }
+        
+        // Переключение забытого пароля
+        function toggleForgotPassword() {
+            isForgotPassword = !isForgotPassword;
+            if (isForgotPassword) {
+                authTitle.textContent = 'Забыли пароль?';
+                authSubmit.textContent = 'Отправить ссылку';
+                forgotPasswordSection.style.display = 'block';
+                resetPasswordBtn.style.display = 'block';
+                forgotPasswordBtn.style.display = 'none';
+                toggleAuth.style.display = 'none';
+            } else {
+                authTitle.textContent = 'Вход';
+                authSubmit.textContent = 'Войти';
+                forgotPasswordSection.style.display = 'none';
+                resetPasswordBtn.style.display = 'none';
+                forgotPasswordBtn.style.display = 'block';
+                toggleAuth.style.display = 'block';
+            }
+        }
+        
+        // Сброс пароля
+        async function resetPassword() {
+            const email = authEmail.value.trim();
+            const newPasswordVal = newPassword.value;
+            
+            if (!email) {
+                showNotification('Введите email', 'error');
+                return;
+            }
+            
+            if (!newPasswordVal) {
+                showNotification('Введите новый пароль', 'error');
+                return;
+            }
+            
+            try {
+                const { error } = await supabase.auth.updateUser({
+                    password: newPasswordVal
+                });
+                
+                if (error) throw error;
+                
+                showNotification('Пароль успешно изменен', 'success');
+                toggleForgotPassword(); // Вернуться к обычному входу
+            } catch (error) {
+                showNotification('Ошибка: ' + error.message, 'error');
+            }
+        }
+        
+        // Обработка аутентификации
+        async function handleAuth() {
+            const email = authEmail.value.trim();
+            const password = authPassword.value;
+            
+            if (!email || !password) {
+                showNotification('Заполните все поля', 'error');
+                return;
+            }
+            
+            try {
+                let result;
+                
+                if (isRegistration) {
+                    // Регистрация без подтверждения по email
+                    result = await supabase.auth.signUp({
+                        email: email,
+                        password: password
+                    });
+                    
+                    if (result.error) throw result.error;
+                    
+                    // Автоматический вход после регистрации
+                    const signInResult = await supabase.auth.signInWithPassword({
+                        email: email,
+                        password: password
+                    });
+                    
+                    if (signInResult.error) throw signInResult.error;
+                    
+                    currentUser = signInResult.data.user;
+                    showNotification('Регистрация успешна!', 'success');
+                    hideAuthModal();
+                    await loadUserData();
+                } else if (isForgotPassword) {
+                    // Восстановление пароля
+                    const { error } = await supabase.auth.resetPasswordForEmail(email);
+                    
+                    if (error) throw error;
+                    
+                    showNotification('Ссылка для восстановления отправлена на email', 'success');
+                } else {
+                    // Вход
+                    result = await supabase.auth.signInWithPassword({
+                        email: email,
+                        password: password
+                    });
+                    
+                    if (result.error) throw result.error;
+                    
+                    currentUser = result.data.user;
+                    showNotification('Вход выполнен!', 'success');
+                    hideAuthModal();
+                    await loadUserData();
+                }
+            } catch (error) {
+                console.error('Ошибка аутентификации:', error);
+                showNotification('Ошибка: ' + error.message, 'error');
+            }
+        }
+        
+        // Загрузка данных пользователя
+        async function loadUserData() {
+            if (!currentUser) return;
+            
+            try {
+                const { data: userData, error } = await supabase
+                    .from('smoking_data')
+                    .select('data')
+                    .eq('user_id', currentUser.id)
+                    .single();
+                
+                if (error && error.code !== 'PGRST116') {
+                    throw error;
+                }
+                
+                if (userData) {
+                    data = { ...data, ...userData.data };
+                } else {
+                    // Новых данных нет, сохраняем текущие
+                    await saveUserData();
+                }
+                
+                updateUI();
+            } catch (error) {
+                console.error('Ошибка загрузки данных:', error);
+                showNotification('Ошибка загрузки данных', 'error');
+            }
+        }
+        
+        // Сохранение данных пользователя
+        async function saveUserData() {
+            if (!currentUser) return;
+            
+            try {
+                const { error } = await supabase
+                    .from('smoking_data')
+                    .upsert({
+                        user_id: currentUser.id,
+                        data: data,
+                        updated_at: new Date().toISOString()
+                    }, {
+                        onConflict: 'user_id'
+                    });
+                
+                if (error) throw error;
+            } catch (error) {
+                console.error('Ошибка сохранения данных:', error);
             }
         }
         
