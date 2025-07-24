@@ -395,7 +395,7 @@
             font-weight: bold;
         }
         
-        .setting input {
+        .setting input, .setting select {
             width: 100%;
             padding: 12px;
             border-radius: 10px;
@@ -458,7 +458,98 @@
             animation: smoke-puff 1s forwards;
         }
         
-        /* Стили для синхронизации */
+        /* Стили для аутентификации */
+        .auth-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .auth-content {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 30px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            text-align: center;
+        }
+        
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .auth-input {
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+            font-size: 1rem;
+        }
+        
+        .auth-btn {
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: var(--primary-btn);
+            color: white;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .auth-btn:hover {
+            opacity: 0.9;
+        }
+        
+        .auth-toggle {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            text-decoration: underline;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .user-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .user-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4CAF50, #8BC34A);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+        }
+        
         .sync-indicator {
             position: fixed;
             top: 10px;
@@ -485,31 +576,6 @@
         
         .sync-error {
             background: #f44336;
-            color: white;
-        }
-        
-        .user-panel {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-        
-        .user-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #4CAF50, #8BC34A);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
             color: white;
         }
         
@@ -583,6 +649,22 @@
             <span id="syncText">Синхронизация...</span>
         </div>
         
+        <!-- Модальное окно аутентификации -->
+        <div class="auth-modal" id="authModal">
+            <div class="auth-content">
+                <div class="modal-header">
+                    <h2 id="authTitle">Вход</h2>
+                    <button class="close-modal" id="closeAuth">&times;</button>
+                </div>
+                <div class="auth-form">
+                    <input type="email" id="authEmail" class="auth-input" placeholder="Email">
+                    <input type="password" id="authPassword" class="auth-input" placeholder="Пароль">
+                    <button class="auth-btn" id="authSubmit">Войти</button>
+                    <button class="auth-toggle" id="toggleAuth">Нет аккаунта? Зарегистрироваться</button>
+                </div>
+            </div>
+        </div>
+        
         <!-- Панель пользователя -->
         <div class="user-panel" id="userPanel">
             <div class="user-info">
@@ -590,7 +672,7 @@
                     <div class="user-avatar" id="userAvatar">U</div>
                     <div>
                         <div id="userName">Пользователь</div>
-                        <div style="font-size: 0.8rem; opacity: 0.8;" id="userId">ID: ...</div>
+                        <div style="font-size: 0.8rem; opacity: 0.8;" id="userEmail">email@example.com</div>
                     </div>
                 </div>
                 <button class="btn btn-secondary" id="logoutBtn" style="padding: 8px 15px; font-size: 0.9rem;">Выйти</button>
@@ -606,7 +688,7 @@
             <button class="theme-toggle" id="themeToggle" title="Сменить тему">🌙</button>
         </header>
         
-        <main>
+        <main id="mainContent">
             <div class="counter-card">
                 <h2>Сегодня выкуренных сигарет</h2>
                 <div class="counter-value" id="counter">0</div>
@@ -694,6 +776,7 @@
                 <input type="number" id="countSetting" value="20" min="1">
             </div>
             <div class="modal-actions">
+                <button class="btn btn-secondary btn-full" id="loginBtn">Войти / Зарегистрироваться</button>
                 <button class="btn btn-secondary btn-full" id="exportBtn">Экспорт данных</button>
                 <button class="btn btn-secondary btn-full" id="resetDayBtn">Сбросить сегодня</button>
                 <button class="btn danger-btn btn-full" id="resetAllBtn">Сбросить всё</button>
@@ -762,6 +845,26 @@
         const timerEl = document.getElementById('timer');
         const lastCigaretteTimeEl = document.getElementById('last-cigarette-time');
         
+        // Auth elements
+        const authModal = document.getElementById('authModal');
+        const authTitle = document.getElementById('authTitle');
+        const authEmail = document.getElementById('authEmail');
+        const authPassword = document.getElementById('authPassword');
+        const authSubmit = document.getElementById('authSubmit');
+        const toggleAuth = document.getElementById('toggleAuth');
+        const closeAuth = document.getElementById('closeAuth');
+        const loginBtn = document.getElementById('loginBtn');
+        const userPanel = document.getElementById('userPanel');
+        const userAvatar = document.getElementById('userAvatar');
+        const userName = document.getElementById('userName');
+        const userEmail = document.getElementById('userEmail');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const mainContent = document.getElementById('mainContent');
+        
+        // Auth state
+        let isRegistration = false;
+        let currentUser = null;
+        
         // Показать индикатор синхронизации
         function showSyncIndicator(status, message) {
             const syncIndicator = document.getElementById('syncIndicator');
@@ -778,80 +881,147 @@
             }
         }
         
-        // Генерация уникального ID пользователя
-        function generateUserId() {
-            // Используем fingerprint браузера + случайное число
-            const fingerprint = navigator.userAgent + navigator.language + screen.width + screen.height;
-            const hash = btoa(fingerprint).substring(0, 12);
-            const random = Math.random().toString(36).substring(2, 8);
-            return hash + random;
+        // Показать модальное окно аутентификации
+        function showAuthModal() {
+            authModal.style.display = 'flex';
+            authTitle.textContent = isRegistration ? 'Регистрация' : 'Вход';
+            authSubmit.textContent = isRegistration ? 'Зарегистрироваться' : 'Войти';
         }
         
-        // Получение ID пользователя
-        function getUserId() {
-            let userId = localStorage.getItem('smokingApp_userId');
-            if (!userId) {
-                userId = generateUserId();
-                localStorage.setItem('smokingApp_userId', userId);
+        // Скрыть модальное окно аутентификации
+        function hideAuthModal() {
+            authModal.style.display = 'none';
+        }
+        
+        // Переключить между входом и регистрацией
+        function toggleAuthForm() {
+            isRegistration = !isRegistration;
+            showAuthModal();
+        }
+        
+        // Обработка аутентификации
+        async function handleAuth() {
+            const email = authEmail.value.trim();
+            const password = authPassword.value;
+            
+            if (!email || !password) {
+                showSyncIndicator('error', 'Заполните все поля');
+                return;
             }
-            return userId;
+            
+            try {
+                let userCredential;
+                
+                if (isRegistration) {
+                    // Регистрация
+                    userCredential = await supabase.auth.signUp({
+                        email: email,
+                        password: password
+                    });
+                    
+                    if (userCredential.error) throw userCredential.error;
+                    
+                    showSyncIndicator('success', 'Регистрация успешна! Проверьте email.');
+                } else {
+                    // Вход
+                    userCredential = await supabase.auth.signInWithPassword({
+                        email: email,
+                        password: password
+                    });
+                    
+                    if (userCredential.error) throw userCredential.error;
+                    
+                    currentUser = userCredential.data.user;
+                    showUserPanel();
+                    hideAuthModal();
+                    showSyncIndicator('success', 'Вход выполнен!');
+                    
+                    // Загружаем данные пользователя
+                    await loadUserData();
+                }
+            } catch (error) {
+                console.error('Ошибка аутентификации:', error);
+                showSyncIndicator('error', 'Ошибка: ' + error.message);
+            }
         }
         
-        // Загрузка данных из Supabase
-        async function loadCloudData() {
+        // Показать панель пользователя
+        function showUserPanel() {
+            if (currentUser) {
+                const email = currentUser.email;
+                userAvatar.textContent = email.charAt(0).toUpperCase();
+                userName.textContent = email.split('@')[0];
+                userEmail.textContent = email;
+                userPanel.style.display = 'block';
+                mainContent.style.display = 'block';
+            }
+        }
+        
+        // Скрыть панель пользователя
+        function hideUserPanel() {
+            userPanel.style.display = 'none';
+            mainContent.style.display = 'none';
+        }
+        
+        // Выход из аккаунта
+        async function logout() {
+            try {
+                const { error } = await supabase.auth.signOut();
+                if (error) throw error;
+                
+                currentUser = null;
+                hideUserPanel();
+                showSyncIndicator('success', 'Вы вышли из аккаунта');
+            } catch (error) {
+                console.error('Ошибка выхода:', error);
+                showSyncIndicator('error', 'Ошибка выхода: ' + error.message);
+            }
+        }
+        
+        // Загрузка данных пользователя
+        async function loadUserData() {
+            if (!currentUser) return;
+            
             try {
                 showSyncIndicator('syncing', 'Загрузка данных...');
                 
-                const userId = getUserId();
-                const { data: cloudData, error } = await supabase
+                const { data: userData, error } = await supabase
                     .from('smoking_data')
-                    .select('*')
-                    .eq('user_id', userId)
+                    .select('data')
+                    .eq('user_id', currentUser.id)
                     .single();
                 
                 if (error && error.code !== 'PGRST116') {
                     throw error;
                 }
                 
-                if (cloudData) {
-                    // Проверяем, какие данные новее
-                    const localTimestamp = localStorage.getItem('smokingApp_lastUpdate');
-                    const cloudTimestamp = cloudData.updated_at;
-                    
-                    if (!localTimestamp || new Date(cloudTimestamp) > new Date(localTimestamp)) {
-                        // Данные в облаке новее
-                        data = { ...data, ...cloudData.data };
-                        localStorage.setItem('smokingApp_lastUpdate', new Date().toISOString());
-                        showSyncIndicator('success', 'Данные обновлены из облака');
-                    } else {
-                        // Локальные данные новее, сохраняем их
-                        await saveCloudData();
-                        showSyncIndicator('success', 'Локальные данные сохранены');
-                    }
+                if (userData) {
+                    data = { ...data, ...userData.data };
+                    showSyncIndicator('success', 'Данные загружены');
                 } else {
                     // Новых данных нет, сохраняем текущие
-                    await saveCloudData();
-                    showSyncIndicator('success', 'Данные сохранены в облако');
+                    await saveUserData();
+                    showSyncIndicator('success', 'Данные сохранены');
                 }
                 
-                return true;
+                updateUI();
             } catch (error) {
                 console.error('Ошибка загрузки данных:', error);
-                showSyncIndicator('error', 'Ошибка синхронизации');
-                return false;
+                showSyncIndicator('error', 'Ошибка загрузки данных');
             }
         }
         
-        // Сохранение данных в Supabase
-        async function saveCloudData() {
+        // Сохранение данных пользователя
+        async function saveUserData() {
+            if (!currentUser) return;
+            
             try {
-                const userId = getUserId();
                 const now = new Date().toISOString();
                 
                 const { error } = await supabase
                     .from('smoking_data')
                     .upsert({
-                        user_id: userId,
+                        user_id: currentUser.id,
                         data: data,
                         updated_at: now
                     }, {
@@ -860,7 +1030,6 @@
                 
                 if (error) throw error;
                 
-                localStorage.setItem('smokingApp_lastUpdate', now);
                 return true;
             } catch (error) {
                 console.error('Ошибка сохранения данных:', error);
@@ -868,52 +1037,30 @@
             }
         }
         
-        // Автоматическая синхронизация
-        async function autoSync() {
-            // Сначала загружаем данные
-            await loadCloudData();
-            updateUI();
+        // Автоматическая синхронизация для авторизованных пользователей
+        function startAutoSync() {
+            if (!currentUser) return;
             
-            // Затем периодически сохраняем изменения
+            // Сохраняем данные каждые 30 секунд
             setInterval(async () => {
-                if (document.visibilityState === 'visible') {
-                    const success = await saveCloudData();
+                if (document.visibilityState === 'visible' && currentUser) {
+                    const success = await saveUserData();
                     if (success) {
-                        showSyncIndicator('success', 'Автосохранение');
+                        showSyncIndicator('success', 'Данные сохранены');
                     }
                 }
-            }, 30000); // Каждые 30 секунд
+            }, 30000);
             
             // Сохраняем при закрытии вкладки
             window.addEventListener('beforeunload', async () => {
-                await saveCloudData();
+                if (currentUser) {
+                    await saveUserData();
+                }
             });
         }
         
-        // Показать панель пользователя
-        function showUserPanel() {
-            const userId = getUserId();
-            const userAvatar = document.getElementById('userAvatar');
-            const userName = document.getElementById('userName');
-            const userIdEl = document.getElementById('userId');
-            const userPanel = document.getElementById('userPanel');
-            
-            userAvatar.textContent = userId.charAt(0).toUpperCase();
-            userName.textContent = `Пользователь ${userId.substring(0, 6)}...`;
-            userIdEl.textContent = `ID: ${userId}`;
-            userPanel.style.display = 'block';
-        }
-        
-        // Выход (очистка данных)
-        function logout() {
-            if (confirm('Вы уверены, что хотите выйти? Это очистит все данные на этом устройстве.')) {
-                localStorage.clear();
-                location.reload();
-            }
-        }
-        
         // Инициализация приложения
-        function initApp() {
+        async function initApp() {
             loadData();
             updateUI();
             showRandomQuote();
@@ -921,11 +1068,31 @@
             checkAchievements();
             startTimer();
             
-            // Показываем информацию о пользователе
-            showUserPanel();
+            // Проверяем текущую сессию
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                currentUser = session.user;
+                showUserPanel();
+                await loadUserData();
+                startAutoSync();
+            } else {
+                hideUserPanel();
+            }
+            
+            // Слушатель изменений аутентификации
+            supabase.auth.onAuthStateChange((event, session) => {
+                if (event === 'SIGNED_IN') {
+                    currentUser = session.user;
+                    showUserPanel();
+                    loadUserData();
+                    startAutoSync();
+                } else if (event === 'SIGNED_OUT') {
+                    currentUser = null;
+                    hideUserPanel();
+                }
+            });
             
             // Настраиваем обработчики
-            document.getElementById('logoutBtn').addEventListener('click', logout);
             document.getElementById('increment').addEventListener('click', incrementCounter);
             document.getElementById('decrement').addEventListener('click', decrementCounter);
             document.getElementById('themeToggle').addEventListener('click', toggleTheme);
@@ -937,6 +1104,18 @@
             document.querySelector('.close-modal').addEventListener('click', closeSettings);
             document.getElementById('settingsModal').addEventListener('click', function(e) {
                 if (e.target === this) closeSettings();
+            });
+            
+            // Auth handlers
+            loginBtn.addEventListener('click', showAuthModal);
+            authSubmit.addEventListener('click', handleAuth);
+            toggleAuth.addEventListener('click', toggleAuthForm);
+            closeAuth.addEventListener('click', hideAuthModal);
+            logoutBtn.addEventListener('click', logout);
+            
+            // Close auth modal when clicking outside
+            authModal.addEventListener('click', function(e) {
+                if (e.target === this) hideAuthModal();
             });
             
             // Обработчики для статистики
@@ -962,9 +1141,6 @@
                     });
                 });
             }
-            
-            // Запускаем автоматическую синхронизацию
-            autoSync();
         }
         
         // Сохранение данных
@@ -972,10 +1148,12 @@
             try {
                 localStorage.setItem('smokingData', JSON.stringify(data));
                 
-                // Асинхронно сохраняем в облако
-                setTimeout(() => {
-                    saveCloudData();
-                }, 100);
+                // Для авторизованных пользователей сохраняем в облако
+                if (currentUser) {
+                    setTimeout(() => {
+                        saveUserData();
+                    }, 100);
+                }
             } catch (e) {
                 console.log('Не удалось сохранить данные');
             }
