@@ -1,8 +1,8 @@
 const CACHE_NAME = 'smoking-counter-v1';
 const urlsToCache = [
-  '/my-smoking-app/',
-  '/my-smoking-app/index.html',
-  '/my-smoking-app/manifest.json'
+  '/',
+  '/index.html',
+  '/manifest.json'
 ];
 
 self.addEventListener('install', event => {
