@@ -11,7 +11,9 @@
     <title>Счетчик сигарет</title>
     <meta name="description" content="PWA приложение для отслеживания потребления сигарет">
     <link rel="manifest" href="/my-smoking-app/manifest.json">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚬</text></svg>">
+    <link rel="icon" href="image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚬</text></svg>">
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --bg-gradient: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
@@ -456,6 +458,61 @@
             animation: smoke-puff 1s forwards;
         }
         
+        /* Стили для синхронизации */
+        .sync-indicator {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .sync-syncing {
+            background: #2196F3;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .sync-success {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .sync-error {
+            background: #f44336;
+            color: white;
+        }
+        
+        .user-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .user-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4CAF50, #8BC34A);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+        }
+        
         @media (max-width: 600px) {
             body {
                 padding: 10px;
@@ -521,6 +578,25 @@
 </head>
 <body>
     <div class="container">
+        <!-- Индикатор синхронизации -->
+        <div class="sync-indicator" id="syncIndicator">
+            <span id="syncText">Синхронизация...</span>
+        </div>
+        
+        <!-- Панель пользователя -->
+        <div class="user-panel" id="userPanel">
+            <div class="user-info">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <div>
+                        <div id="userName">Пользователь</div>
+                        <div style="font-size: 0.8rem; opacity: 0.8;" id="userId">ID: ...</div>
+                    </div>
+                </div>
+                <button class="btn btn-secondary" id="logoutBtn" style="padding: 8px 15px; font-size: 0.9rem;">Выйти</button>
+            </div>
+        </div>
+        
         <header>
             <div class="header-content">
                 <h1>Счетчик сигарет</h1>
@@ -627,6 +703,11 @@
     </div>
     
     <script>
+        // Конфигурация Supabase (ЗАМЕНИТЕ НА СВОИ ДАННЫЕ!)
+        const supabaseUrl = 'https://podwpmokbbyzkrqhygci.supabase.co'; // Замените на ваш Project URL
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvZHdwbW9rYmJ5emtycWh5Z2NpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMzNzI1MzQsImV4cCI6MjA2ODk0ODUzNH0.3UH4jmnzgPub0GLCK4yXE692kpYuXVt9LAwJmC5heaA'; // Замените на ваш anon key
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        
         // Данные приложения
         let data = {
             today: 0,
@@ -681,6 +762,156 @@
         const timerEl = document.getElementById('timer');
         const lastCigaretteTimeEl = document.getElementById('last-cigarette-time');
         
+        // Показать индикатор синхронизации
+        function showSyncIndicator(status, message) {
+            const syncIndicator = document.getElementById('syncIndicator');
+            const syncText = document.getElementById('syncText');
+            
+            syncIndicator.className = 'sync-indicator sync-' + status;
+            syncText.textContent = message;
+            syncIndicator.style.display = 'flex';
+            
+            if (status !== 'syncing') {
+                setTimeout(() => {
+                    syncIndicator.style.display = 'none';
+                }, 3000);
+            }
+        }
+        
+        // Генерация уникального ID пользователя
+        function generateUserId() {
+            // Используем fingerprint браузера + случайное число
+            const fingerprint = navigator.userAgent + navigator.language + screen.width + screen.height;
+            const hash = btoa(fingerprint).substring(0, 12);
+            const random = Math.random().toString(36).substring(2, 8);
+            return hash + random;
+        }
+        
+        // Получение ID пользователя
+        function getUserId() {
+            let userId = localStorage.getItem('smokingApp_userId');
+            if (!userId) {
+                userId = generateUserId();
+                localStorage.setItem('smokingApp_userId', userId);
+            }
+            return userId;
+        }
+        
+        // Загрузка данных из Supabase
+        async function loadCloudData() {
+            try {
+                showSyncIndicator('syncing', 'Загрузка данных...');
+                
+                const userId = getUserId();
+                const { data: cloudData, error } = await supabase
+                    .from('smoking_data')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .single();
+                
+                if (error && error.code !== 'PGRST116') {
+                    throw error;
+                }
+                
+                if (cloudData) {
+                    // Проверяем, какие данные новее
+                    const localTimestamp = localStorage.getItem('smokingApp_lastUpdate');
+                    const cloudTimestamp = cloudData.updated_at;
+                    
+                    if (!localTimestamp || new Date(cloudTimestamp) > new Date(localTimestamp)) {
+                        // Данные в облаке новее
+                        data = { ...data, ...cloudData.data };
+                        localStorage.setItem('smokingApp_lastUpdate', new Date().toISOString());
+                        showSyncIndicator('success', 'Данные обновлены из облака');
+                    } else {
+                        // Локальные данные новее, сохраняем их
+                        await saveCloudData();
+                        showSyncIndicator('success', 'Локальные данные сохранены');
+                    }
+                } else {
+                    // Новых данных нет, сохраняем текущие
+                    await saveCloudData();
+                    showSyncIndicator('success', 'Данные сохранены в облако');
+                }
+                
+                return true;
+            } catch (error) {
+                console.error('Ошибка загрузки данных:', error);
+                showSyncIndicator('error', 'Ошибка синхронизации');
+                return false;
+            }
+        }
+        
+        // Сохранение данных в Supabase
+        async function saveCloudData() {
+            try {
+                const userId = getUserId();
+                const now = new Date().toISOString();
+                
+                const { error } = await supabase
+                    .from('smoking_data')
+                    .upsert({
+                        user_id: userId,
+                        data: data,
+                        updated_at: now
+                    }, {
+                        onConflict: 'user_id'
+                    });
+                
+                if (error) throw error;
+                
+                localStorage.setItem('smokingApp_lastUpdate', now);
+                return true;
+            } catch (error) {
+                console.error('Ошибка сохранения данных:', error);
+                return false;
+            }
+        }
+        
+        // Автоматическая синхронизация
+        async function autoSync() {
+            // Сначала загружаем данные
+            await loadCloudData();
+            updateUI();
+            
+            // Затем периодически сохраняем изменения
+            setInterval(async () => {
+                if (document.visibilityState === 'visible') {
+                    const success = await saveCloudData();
+                    if (success) {
+                        showSyncIndicator('success', 'Автосохранение');
+                    }
+                }
+            }, 30000); // Каждые 30 секунд
+            
+            // Сохраняем при закрытии вкладки
+            window.addEventListener('beforeunload', async () => {
+                await saveCloudData();
+            });
+        }
+        
+        // Показать панель пользователя
+        function showUserPanel() {
+            const userId = getUserId();
+            const userAvatar = document.getElementById('userAvatar');
+            const userName = document.getElementById('userName');
+            const userIdEl = document.getElementById('userId');
+            const userPanel = document.getElementById('userPanel');
+            
+            userAvatar.textContent = userId.charAt(0).toUpperCase();
+            userName.textContent = `Пользователь ${userId.substring(0, 6)}...`;
+            userIdEl.textContent = `ID: ${userId}`;
+            userPanel.style.display = 'block';
+        }
+        
+        // Выход (очистка данных)
+        function logout() {
+            if (confirm('Вы уверены, что хотите выйти? Это очистит все данные на этом устройстве.')) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+        
         // Инициализация приложения
         function initApp() {
             loadData();
@@ -690,7 +921,11 @@
             checkAchievements();
             startTimer();
             
-            // Установка обработчиков событий
+            // Показываем информацию о пользователе
+            showUserPanel();
+            
+            // Настраиваем обработчики
+            document.getElementById('logoutBtn').addEventListener('click', logout);
             document.getElementById('increment').addEventListener('click', incrementCounter);
             document.getElementById('decrement').addEventListener('click', decrementCounter);
             document.getElementById('themeToggle').addEventListener('click', toggleTheme);
@@ -727,12 +962,20 @@
                     });
                 });
             }
+            
+            // Запускаем автоматическую синхронизацию
+            autoSync();
         }
         
         // Сохранение данных
         function saveData() {
             try {
                 localStorage.setItem('smokingData', JSON.stringify(data));
+                
+                // Асинхронно сохраняем в облако
+                setTimeout(() => {
+                    saveCloudData();
+                }, 100);
             } catch (e) {
                 console.log('Не удалось сохранить данные');
             }
@@ -997,7 +1240,7 @@
         // Экспорт данных
         function exportData() {
             const dataStr = JSON.stringify(data, null, 2);
-            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            const dataUri = 'application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
             
             const exportFileDefaultName = 'smoking-data.json';
             
