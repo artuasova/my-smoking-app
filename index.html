@@ -1,3 +1,4 @@
+<!-- Версия 1.1 -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -10,9 +11,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Счетчик сигарет</title>
     <meta name="description" content="PWA приложение для отслеживания потребления сигарет">
-    <link rel="manifest" href="/my-smoking-app/manifest.json">
-    <link rel="icon" href="image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚬</text></svg>">
-    <!-- Supabase SDK -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚬</text></svg>">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -230,6 +230,7 @@
             font-weight: bold;
             margin: 10px 0;
             color: #4CAF50;
+            text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
         }
         
         .progress-container {
@@ -395,7 +396,7 @@
             font-weight: bold;
         }
         
-        .setting input, .setting select {
+        .setting input {
             width: 100%;
             padding: 12px;
             border-radius: 10px;
@@ -441,142 +442,6 @@
         
         .pulse {
             animation: pulse 0.5s;
-        }
-        
-        @keyframes smoke-puff {
-            0% { transform: scale(0); opacity: 1; }
-            100% { transform: scale(2); opacity: 0; }
-        }
-        
-        .smoke-puff {
-            position: absolute;
-            width: 50px;
-            height: 50px;
-            background: rgba(255, 255, 255, 0.7);
-            border-radius: 50%;
-            pointer-events: none;
-            animation: smoke-puff 1s forwards;
-        }
-        
-        /* Стили для аутентификации */
-        .auth-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            z-index: 2000;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .auth-content {
-            background: var(--card-bg);
-            border-radius: 20px;
-            padding: 30px;
-            width: 90%;
-            max-width: 400px;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border-color);
-            text-align: center;
-        }
-        
-        .auth-form {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        
-        .auth-input {
-            padding: 15px;
-            border-radius: 10px;
-            border: 1px solid var(--border-color);
-            background: rgba(255, 255, 255, 0.1);
-            color: var(--text-color);
-            font-size: 1rem;
-        }
-        
-        .auth-btn {
-            padding: 15px;
-            border: none;
-            border-radius: 10px;
-            background: var(--primary-btn);
-            color: white;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .auth-btn:hover {
-            opacity: 0.9;
-        }
-        
-        .auth-toggle {
-            background: none;
-            border: none;
-            color: var(--text-color);
-            text-decoration: underline;
-            cursor: pointer;
-            margin-top: 10px;
-            font-size: 0.9rem;
-        }
-        
-        .user-panel {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-            padding: 15px;
-            margin-bottom: 20px;
-            display: none;
-        }
-        
-        .user-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #4CAF50, #8BC34A);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            color: white;
-        }
-        
-        .sync-indicator {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            padding: 8px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            z-index: 1000;
-            display: none;
-        }
-        
-        .sync-syncing {
-            background: #2196F3;
-            color: white;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        .sync-success {
-            background: #4CAF50;
-            color: white;
-        }
-        
-        .sync-error {
-            background: #f44336;
-            color: white;
         }
         
         @media (max-width: 600px) {
@@ -644,41 +509,6 @@
 </head>
 <body>
     <div class="container">
-        <!-- Индикатор синхронизации -->
-        <div class="sync-indicator" id="syncIndicator">
-            <span id="syncText">Синхронизация...</span>
-        </div>
-        
-        <!-- Модальное окно аутентификации -->
-        <div class="auth-modal" id="authModal">
-            <div class="auth-content">
-                <div class="modal-header">
-                    <h2 id="authTitle">Вход</h2>
-                    <button class="close-modal" id="closeAuth">&times;</button>
-                </div>
-                <div class="auth-form">
-                    <input type="email" id="authEmail" class="auth-input" placeholder="Email">
-                    <input type="password" id="authPassword" class="auth-input" placeholder="Пароль">
-                    <button class="auth-btn" id="authSubmit">Войти</button>
-                    <button class="auth-toggle" id="toggleAuth">Нет аккаунта? Зарегистрироваться</button>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Панель пользователя -->
-        <div class="user-panel" id="userPanel">
-            <div class="user-info">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <div class="user-avatar" id="userAvatar">U</div>
-                    <div>
-                        <div id="userName">Пользователь</div>
-                        <div style="font-size: 0.8rem; opacity: 0.8;" id="userEmail">email@example.com</div>
-                    </div>
-                </div>
-                <button class="btn btn-secondary" id="logoutBtn" style="padding: 8px 15px; font-size: 0.9rem;">Выйти</button>
-            </div>
-        </div>
-        
         <header>
             <div class="header-content">
                 <h1>Счетчик сигарет</h1>
@@ -688,7 +518,7 @@
             <button class="theme-toggle" id="themeToggle" title="Сменить тему">🌙</button>
         </header>
         
-        <main id="mainContent">
+        <main>
             <div class="counter-card">
                 <h2>Сегодня выкуренных сигарет</h2>
                 <div class="counter-value" id="counter">0</div>
@@ -756,6 +586,28 @@
         </footer>
     </div>
     
+    <!-- Модальное окно аутентификации -->
+    <div class="modal" id="authModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="authTitle">Вход</h2>
+                <button class="close-modal" id="closeAuth">&times;</button>
+            </div>
+            <div class="setting">
+                <label>Email:</label>
+                <input type="email" id="authEmail" placeholder="example@email.com">
+            </div>
+            <div class="setting">
+                <label>Пароль:</label>
+                <input type="password" id="authPassword" placeholder="********">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary btn-full" id="authSubmit">Войти</button>
+                <button class="btn btn-secondary btn-full" id="toggleAuth">Нет аккаунта? Зарегистрироваться</button>
+            </div>
+        </div>
+    </div>
+    
     <!-- Модальное окно настроек -->
     <div class="modal" id="settingsModal">
         <div class="modal-content">
@@ -789,7 +641,14 @@
         // Конфигурация Supabase (ЗАМЕНИТЕ НА СВОИ ДАННЫЕ!)
         const supabaseUrl = 'https://podwpmokbbyzkrqhygci.supabase.co'; // Замените на ваш Project URL
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvZHdwbW9rYmJ5emtycWh5Z2NpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMzNzI1MzQsImV4cCI6MjA2ODk0ODUzNH0.3UH4jmnzgPub0GLCK4yXE692kpYuXVt9LAwJmC5heaA'; // Замените на ваш anon key
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        
+        // Инициализация Supabase
+        let supabase;
+        try {
+            supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        } catch (error) {
+            console.error('Ошибка инициализации Supabase:', error);
+        }
         
         // Данные приложения
         let data = {
@@ -854,213 +713,13 @@
         const toggleAuth = document.getElementById('toggleAuth');
         const closeAuth = document.getElementById('closeAuth');
         const loginBtn = document.getElementById('loginBtn');
-        const userPanel = document.getElementById('userPanel');
-        const userAvatar = document.getElementById('userAvatar');
-        const userName = document.getElementById('userName');
-        const userEmail = document.getElementById('userEmail');
-        const logoutBtn = document.getElementById('logoutBtn');
-        const mainContent = document.getElementById('mainContent');
         
         // Auth state
         let isRegistration = false;
         let currentUser = null;
         
-        // Показать индикатор синхронизации
-        function showSyncIndicator(status, message) {
-            const syncIndicator = document.getElementById('syncIndicator');
-            const syncText = document.getElementById('syncText');
-            
-            syncIndicator.className = 'sync-indicator sync-' + status;
-            syncText.textContent = message;
-            syncIndicator.style.display = 'flex';
-            
-            if (status !== 'syncing') {
-                setTimeout(() => {
-                    syncIndicator.style.display = 'none';
-                }, 3000);
-            }
-        }
-        
-        // Показать модальное окно аутентификации
-        function showAuthModal() {
-            authModal.style.display = 'flex';
-            authTitle.textContent = isRegistration ? 'Регистрация' : 'Вход';
-            authSubmit.textContent = isRegistration ? 'Зарегистрироваться' : 'Войти';
-        }
-        
-        // Скрыть модальное окно аутентификации
-        function hideAuthModal() {
-            authModal.style.display = 'none';
-        }
-        
-        // Переключить между входом и регистрацией
-        function toggleAuthForm() {
-            isRegistration = !isRegistration;
-            showAuthModal();
-        }
-        
-        // Обработка аутентификации
-        async function handleAuth() {
-            const email = authEmail.value.trim();
-            const password = authPassword.value;
-            
-            if (!email || !password) {
-                showSyncIndicator('error', 'Заполните все поля');
-                return;
-            }
-            
-            try {
-                let userCredential;
-                
-                if (isRegistration) {
-                    // Регистрация
-                    userCredential = await supabase.auth.signUp({
-                        email: email,
-                        password: password
-                    });
-                    
-                    if (userCredential.error) throw userCredential.error;
-                    
-                    showSyncIndicator('success', 'Регистрация успешна! Проверьте email.');
-                } else {
-                    // Вход
-                    userCredential = await supabase.auth.signInWithPassword({
-                        email: email,
-                        password: password
-                    });
-                    
-                    if (userCredential.error) throw userCredential.error;
-                    
-                    currentUser = userCredential.data.user;
-                    showUserPanel();
-                    hideAuthModal();
-                    showSyncIndicator('success', 'Вход выполнен!');
-                    
-                    // Загружаем данные пользователя
-                    await loadUserData();
-                }
-            } catch (error) {
-                console.error('Ошибка аутентификации:', error);
-                showSyncIndicator('error', 'Ошибка: ' + error.message);
-            }
-        }
-        
-        // Показать панель пользователя
-        function showUserPanel() {
-            if (currentUser) {
-                const email = currentUser.email;
-                userAvatar.textContent = email.charAt(0).toUpperCase();
-                userName.textContent = email.split('@')[0];
-                userEmail.textContent = email;
-                userPanel.style.display = 'block';
-                mainContent.style.display = 'block';
-            }
-        }
-        
-        // Скрыть панель пользователя
-        function hideUserPanel() {
-            userPanel.style.display = 'none';
-            mainContent.style.display = 'none';
-        }
-        
-        // Выход из аккаунта
-        async function logout() {
-            try {
-                const { error } = await supabase.auth.signOut();
-                if (error) throw error;
-                
-                currentUser = null;
-                hideUserPanel();
-                showSyncIndicator('success', 'Вы вышли из аккаунта');
-            } catch (error) {
-                console.error('Ошибка выхода:', error);
-                showSyncIndicator('error', 'Ошибка выхода: ' + error.message);
-            }
-        }
-        
-        // Загрузка данных пользователя
-        async function loadUserData() {
-            if (!currentUser) return;
-            
-            try {
-                showSyncIndicator('syncing', 'Загрузка данных...');
-                
-                const { data: userData, error } = await supabase
-                    .from('smoking_data')
-                    .select('data')
-                    .eq('user_id', currentUser.id)
-                    .single();
-                
-                if (error && error.code !== 'PGRST116') {
-                    throw error;
-                }
-                
-                if (userData) {
-                    data = { ...data, ...userData.data };
-                    showSyncIndicator('success', 'Данные загружены');
-                } else {
-                    // Новых данных нет, сохраняем текущие
-                    await saveUserData();
-                    showSyncIndicator('success', 'Данные сохранены');
-                }
-                
-                updateUI();
-            } catch (error) {
-                console.error('Ошибка загрузки данных:', error);
-                showSyncIndicator('error', 'Ошибка загрузки данных');
-            }
-        }
-        
-        // Сохранение данных пользователя
-        async function saveUserData() {
-            if (!currentUser) return;
-            
-            try {
-                const now = new Date().toISOString();
-                
-                const { error } = await supabase
-                    .from('smoking_data')
-                    .upsert({
-                        user_id: currentUser.id,
-                        data: data,
-                        updated_at: now
-                    }, {
-                        onConflict: 'user_id'
-                    });
-                
-                if (error) throw error;
-                
-                return true;
-            } catch (error) {
-                console.error('Ошибка сохранения данных:', error);
-                return false;
-            }
-        }
-        
-        // Автоматическая синхронизация для авторизованных пользователей
-        function startAutoSync() {
-            if (!currentUser) return;
-            
-            // Сохраняем данные каждые 30 секунд
-            setInterval(async () => {
-                if (document.visibilityState === 'visible' && currentUser) {
-                    const success = await saveUserData();
-                    if (success) {
-                        showSyncIndicator('success', 'Данные сохранены');
-                    }
-                }
-            }, 30000);
-            
-            // Сохраняем при закрытии вкладки
-            window.addEventListener('beforeunload', async () => {
-                if (currentUser) {
-                    await saveUserData();
-                }
-            });
-        }
-        
         // Инициализация приложения
-        async function initApp() {
+        function initApp() {
             loadData();
             updateUI();
             showRandomQuote();
@@ -1068,31 +727,7 @@
             checkAchievements();
             startTimer();
             
-            // Проверяем текущую сессию
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                currentUser = session.user;
-                showUserPanel();
-                await loadUserData();
-                startAutoSync();
-            } else {
-                hideUserPanel();
-            }
-            
-            // Слушатель изменений аутентификации
-            supabase.auth.onAuthStateChange((event, session) => {
-                if (event === 'SIGNED_IN') {
-                    currentUser = session.user;
-                    showUserPanel();
-                    loadUserData();
-                    startAutoSync();
-                } else if (event === 'SIGNED_OUT') {
-                    currentUser = null;
-                    hideUserPanel();
-                }
-            });
-            
-            // Настраиваем обработчики
+            // Установка обработчиков событий
             document.getElementById('increment').addEventListener('click', incrementCounter);
             document.getElementById('decrement').addEventListener('click', decrementCounter);
             document.getElementById('themeToggle').addEventListener('click', toggleTheme);
@@ -1111,10 +746,7 @@
             authSubmit.addEventListener('click', handleAuth);
             toggleAuth.addEventListener('click', toggleAuthForm);
             closeAuth.addEventListener('click', hideAuthModal);
-            logoutBtn.addEventListener('click', logout);
-            
-            // Close auth modal when clicking outside
-            authModal.addEventListener('click', function(e) {
+            document.getElementById('authModal').addEventListener('click', function(e) {
                 if (e.target === this) hideAuthModal();
             });
             
@@ -1132,7 +764,7 @@
             // Регистрация Service Worker
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function() {
-                    navigator.serviceWorker.register('/my-smoking-app/sw.js')
+                    navigator.serviceWorker.register('sw.js')
                     .then(function(registration) {
                         console.log('SW registered: ', registration);
                     })
@@ -1140,6 +772,121 @@
                         console.log('SW registration failed: ', registrationError);
                     });
                 });
+            }
+        }
+        
+        // Показать модальное окно аутентификации
+        function showAuthModal() {
+            authTitle.textContent = isRegistration ? 'Регистрация' : 'Вход';
+            authSubmit.textContent = isRegistration ? 'Зарегистрироваться' : 'Войти';
+            authModal.style.display = 'flex';
+        }
+        
+        // Скрыть модальное окно аутентификации
+        function hideAuthModal() {
+            authModal.style.display = 'none';
+        }
+        
+        // Переключить между входом и регистрацией
+        function toggleAuthForm() {
+            isRegistration = !isRegistration;
+            authTitle.textContent = isRegistration ? 'Регистрация' : 'Вход';
+            authSubmit.textContent = isRegistration ? 'Зарегистрироваться' : 'Войти';
+        }
+        
+        // Обработка аутентификации
+        async function handleAuth() {
+            const email = authEmail.value.trim();
+            const password = authPassword.value;
+            
+            if (!email || !password) {
+                alert('Заполните все поля');
+                return;
+            }
+            
+            try {
+                let result;
+                
+                if (isRegistration) {
+                    // Регистрация
+                    result = await supabase.auth.signUp({
+                        email: email,
+                        password: password
+                    });
+                    
+                    if (result.error) throw result.error;
+                    
+                    alert('Регистрация успешна! Проверьте email для подтверждения.');
+                    hideAuthModal();
+                } else {
+                    // Вход
+                    result = await supabase.auth.signInWithPassword({
+                        email: email,
+                        password: password
+                    });
+                    
+                    if (result.error) throw result.error;
+                    
+                    currentUser = result.data.user;
+                    hideAuthModal();
+                    alert('Вход выполнен!');
+                    
+                    // Загружаем данные пользователя
+                    await loadUserData();
+                }
+            } catch (error) {
+                console.error('Ошибка аутентификации:', error);
+                alert('Ошибка: ' + error.message);
+            }
+        }
+        
+        // Загрузка данных пользователя
+        async function loadUserData() {
+            if (!currentUser) return;
+            
+            try {
+                const { data: userData, error } = await supabase
+                    .from('smoking_data')
+                    .select('data')
+                    .eq('user_id', currentUser.id)
+                    .single();
+                
+                if (error && error.code !== 'PGRST116') {
+                    throw error;
+                }
+                
+                if (userData) {
+                    data = { ...data, ...userData.data };
+                } else {
+                    // Новых данных нет, сохраняем текущие
+                    await saveUserData();
+                }
+                
+                updateUI();
+            } catch (error) {
+                console.error('Ошибка загрузки данных:', error);
+                alert('Ошибка загрузки данных');
+            }
+        }
+        
+        // Сохранение данных пользователя
+        async function saveUserData() {
+            if (!currentUser) return;
+            
+            try {
+                const { error } = await supabase
+                    .from('smoking_data')
+                    .upsert({
+                        user_id: currentUser.id,
+                        data: data,
+                        updated_at: new Date().toISOString()
+                    }, {
+                        onConflict: 'user_id'
+                    });
+                
+                if (error) throw error;
+            } catch (error) {
+                console.error('Ошибка сохранения данных:', error);
             }
         }
         
@@ -1165,7 +912,6 @@
                 const saved = localStorage.getItem('smokingData');
                 if (saved) {
                     const parsed = JSON.parse(saved);
-                    // Объединяем сохраненные данные с текущими
                     data = { ...data, ...parsed };
                 }
             } catch (e) {
@@ -1188,8 +934,8 @@
             
             // Обновление стоимости
             const packsSmoked = data.month / data.cigarettesPerPack;
-            const totalCost = packsSmoked * data.packPrice;
-            costsEl.textContent = `${Math.round(totalCost)} ₽`;
+            const moneySaved = (data.goal * 30 / data.cigarettesPerPack * data.packPrice) - (packsSmoked * data.packPrice);
+            costsEl.textContent = `${Math.max(0, Math.round(moneySaved))} ₽`;
             packPriceEl.textContent = data.packPrice;
             
             // Обновление счетчика достижений
@@ -1301,22 +1047,12 @@
             setTimeout(() => {
                 counterEl.classList.remove('pulse');
             }, 500);
-            
-            // Создаем дымовое облако
-            const smoke = document.createElement('div');
-            smoke.className = 'smoke-puff';
-            smoke.style.left = (Math.random() * 100) + 'px';
-            smoke.style.top = (Math.random() * 100) + 'px';
-            counterEl.appendChild(smoke);
-            
-            setTimeout(() => {
-                smoke.remove();
-            }, 1000);
         }
         
         // Сброс дня
         function resetDay() {
             const confirmed = confirm('Вы уверены, что хотите сбросить счетчик на сегодня?');
+            
             if (confirmed) {
                 data.today = 0;
                 data.timeStats = data.timeStats.filter(record => {
@@ -1338,8 +1074,10 @@
         // Сброс всего
         function resetAll() {
             const confirmed1 = confirm('Вы уверены, что хотите сбросить ВСЕ данные? Это действие нельзя отменить.');
+            
             if (confirmed1) {
                 const confirmed2 = confirm('Последнее предупреждение: ВСЕ данные будут удалены. Продолжить?');
+                
                 if (confirmed2) {
                     // Сброс всех данных
                     data = {
@@ -1540,9 +1278,9 @@
                         });
                     } else {
                         const timeItem = document.createElement('div');
-                        timeItem.className = 'time-item';
-                        timeItem.textContent = 'Нет данных';
-                        details.appendChild(timeItem);
+                            timeItem.className = 'time-item';
+                            timeItem.textContent = 'Нет данных';
+                            details.appendChild(timeItem);
                     }
                     
                     card.appendChild(details);
